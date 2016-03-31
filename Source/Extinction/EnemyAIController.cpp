@@ -106,10 +106,6 @@ void AEnemyAIController::ClearContiousDamage(ACharacter* target)
 
 #pragma endregion
 
-#pragma region StateFunc and StateFuncDict Section
-
-#pragma endregion
-
 #pragma region Initializing
 // This is used for initializing the crowdfollowingcomponent, 
 // though it can't be used to initialize too much since some 
@@ -175,6 +171,12 @@ void AEnemyAIController::SetBlackBoardCompontent(UBlackboardComponent* bbComp)
 	else
 		UE_LOG(LogTemp, Warning, TEXT("BBComp has already been set! Stop trying to set it!!!"));
 }
+
+// This function should set the AttackState to what ever was put into StartingAttackState
+void AEnemyAIController::SetStartingAttackState()
+{
+	SetAttackState(StartingEAState);
+}
 #pragma endregion
 
 // Functions in this region either need to be called every frame ex. Tick
@@ -215,6 +217,8 @@ void AEnemyAIController::CheckTimers(float deltaTime)
 	case AEnemyState::Attacking:
 		if (Target.Target && AttackDelayTimer > 0.f)
 			AttackDelayTimer -= deltaTime;
+		if (AttackDelayTimer <= 0.f)
+			AttackStarted = true;
 	case AEnemyState::Chasing:
 		if (Target.Target && AggroTimer > 0.f)
 			AggroTimer -= deltaTime;
@@ -322,10 +326,10 @@ void AEnemyAIController::FindTargets()
 	for (FConstPawnIterator i = World->GetPawnIterator(); i; ++i)// Goes through every pawn in the world
 	{
 		ACharacter* possibleTarget = Cast<ACharacter>(*i);// Get the possible target pawn and cast it to a character so we can later check the controller
-		if (Debug && possibleTarget != nullptr)
+		if (Debug && DebugLevel > 4 && possibleTarget != nullptr)
 		{
-			//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, GetDebugName(possibleTarget));
-			//DrawDebugString(World, possibleTarget->GetActorLocation(), GetDebugName(possibleTarget));
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, GetDebugName(possibleTarget));
+			DrawDebugString(World, possibleTarget->GetActorLocation(), GetDebugName(possibleTarget));
 		}
 		// Check to make sure the possible target is the player or at least the companion
 		if (possibleTarget != nullptr && (GetDebugName(possibleTarget).Contains(TEXT("Player")) || GetDebugName(possibleTarget).Contains(TEXT("Companion"))))
@@ -459,7 +463,7 @@ TPair<AEnemyState, AEnemyConditionState> AEnemyAIController::SuggestState()
 			t.Key = AEnemyState::Chasing;
 			t.Value = AEnemyConditionState::Normal;
 		}
-		else if (EState != AEnemyState::Attacking && Target.Distance <= AttackRange && AttackDelayTimer <= 0.f)
+		else if ((EState != AEnemyState::Attacking || EState == AEnemyState::Attacking) && Target.Distance <= AttackRange && AttackDelayTimer <= 0.f)
 		{
 			t.Key = AEnemyState::Attacking;
 			t.Value = AEnemyConditionState::Normal;
@@ -468,6 +472,8 @@ TPair<AEnemyState, AEnemyConditionState> AEnemyAIController::SuggestState()
 
 	if (t.Key == AEnemyState::InValid)
 	{
+		if (Debug && DebugLevel > 3)
+			DrawDebugString(World, ControledCharacter->GetActorLocation(), TEXT("ERROR: STATE IS INVALID!!!!"));
 		t.Key = EState;
 		t.Value = ECState;
 	}
@@ -502,6 +508,13 @@ void AEnemyAIController::SetState(AEnemyState eState, AEnemyConditionState eCSta
 	ECState = eCState;
 	PreviousStateName = StateName;
 	StateName = StateToString(EState);
+	if (Debug && DebugLevel > 3)
+	{
+		FString debugMessage = TEXT("Changing state to");
+		debugMessage.Append(StateName);
+		DrawDebugString(World, ControledCharacter->GetActorLocation(), debugMessage);
+	}
+
 	if (PreviousStateName == TEXT("Attacking"))
 		AttackDelayTimer = 0.f;
 
@@ -511,6 +524,11 @@ void AEnemyAIController::SetState(AEnemyState eState, AEnemyConditionState eCSta
 void AEnemyAIController::SetConditionState(AEnemyConditionState eCState)
 {
 	ECState = eCState;
+}
+
+void AEnemyAIController::SetAttackState(AEnemyAttackState eAState)
+{
+	EAState = eAState;
 }
 
 // This function should setup everything needed to switch to the Idle state
@@ -534,6 +552,7 @@ void AEnemyAIController::Chasing()
 void AEnemyAIController::Attacking()
 {
 	AttackStarted = true;
+	AttackEnded = false;
 	SetFocusActor(Target.Target);
 }
 
