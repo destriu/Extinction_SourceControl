@@ -78,6 +78,8 @@ public:
 
 #pragma region Properties
 	UPROPERTY(BlueprintReadOnly, Category = "Roach Controller Properties")
+		TArray<FTargetInfo> Targets;
+	UPROPERTY(BlueprintReadOnly, Category = "Roach Controller Properties")
 		FString StateBeforeRoar;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Roach Controller Properties")
