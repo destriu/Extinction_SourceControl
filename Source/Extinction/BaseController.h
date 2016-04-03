@@ -34,6 +34,19 @@ enum class EnemyConditionState : uint8
 };
 #pragma endregion
 
+// Holds information about the target to figure out aggro if there is more than one target
+USTRUCT(BlueprintType)
+struct FTargetInfo
+{
+	GENERATED_USTRUCT_BODY()
+		UPROPERTY(BlueprintReadWrite, Category = "Target Info")
+		ACharacter* Target;// This will hold the actual target
+	UPROPERTY(BlueprintReadWrite, Category = "Target Info")
+		float Distance;// Holds the distance the target is from the ai
+	UPROPERTY(BlueprintReadWrite, Category = "Target Info")
+		float Health;// Holds the health of the target
+};
+
 UCLASS()
 class EXTINCTION_API ABaseController : public AAIController
 {

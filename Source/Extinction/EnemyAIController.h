@@ -40,6 +40,16 @@ enum class AEnemyConditionState : uint8
 	Enraged			UMETA(DisplayName = "Enraged"),
 	InValid			UMETA(DisplayName = "InValid")
 };
+
+// Holds what range the Ai's attack will be
+UENUM(BlueprintType)
+enum class AEnemyAttackState : uint8
+{
+	ShortRange		UMETA(DisplayName = "Short Range"),
+	MidRange		UMETA(DisplayName = "Mid Range"),
+	LongRange		UMETA(DisplayName = "Long Range"),
+	InValid			UMETA(DisplayName = "InValid")
+};
 #pragma endregion
 
 #pragma region Target Info
@@ -117,6 +127,7 @@ public:
 	virtual FTInfo* AnalyzeTargets();// This function will figure out which target should be aggroed
 	virtual void AggroTarget(FTInfo* target);// This function will actualy set the target return from AbalyzeTargets to be the actual target and do anyother setup needed
 	virtual TPair<AEnemyState, AEnemyConditionState> SuggestState();// This function will suggest what state th ai should be in
+	void SetStartingAttackState();
 	void DrawLineToTarget(bool bHit, FHitResult hit, FVector targetLocation);// This will draw a debug line to a target location specified by targetLocation. This is mostly for debugging purposes
 	bool ContainsTarget(ACharacter* target);// Checks to see if the target is already contained in the array Targets
 	void ClearTargets();// This will get rid of any targets being held in Targets
@@ -163,6 +174,8 @@ public:
 		void SetState(AEnemyState eState, AEnemyConditionState eCState);// This should be used if there is a reason to manually set the ai's enemy state
 	UFUNCTION(BlueprintCallable, Category = Behavior)
 		void SetConditionState(AEnemyConditionState eCState);// This should be used if there is a reason to manually set the ai's condition state
+	UFUNCTION(BlueprintCallable, Category = Behavior)
+		void SetAttackState(AEnemyAttackState eAState);// This should set what range of attack the Ai can do
 	UFUNCTION(BlueprintCallable, Category = Targeting)
 		void SetTarget(FTInfo target); // This should be used if there is a reason to manually set the ai's target
 	UFUNCTION(BlueprintCallable, Category = Behavior)
@@ -189,25 +202,27 @@ public:
 #pragma region Blueprint Accessable Variables
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Debug")
 		bool Debug;// This variables holds wether or not debug information will be displayed, like line traces
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Debug")
+		int32 DebugLevel;// This variables holds which level of debug statements can be shown
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
 		FVector EyeLocation;// This holds the location of the eyes of the ai. This will be used for line tracing
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "State Time Limits")
 		float IdleMaxTimeLimit;// This holds the maximuim amount of time the ai can be idle
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "State Time Limits")
 		float IdleMinTimeLimit;// This holds the minimuim amount of time the ai can be idle
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "State Time Limits")
 		float WanderingMaxTimeLimit;// This holds the maximuim amount of time the ai can wander
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "State Time Limits")
 		float WanderingMinTimeLimit;// This holds the minimuim amount of time the ai can wander
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "State Time Limits")
 		float SearchMaxTimeLimit;// This holds the maximuim amount of time the ai can search
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "State Time Limits")
 		float SearchMinTimeLimit;// This holds the minimuim amount of time the ai can search
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
 		float MaxAttackDelay;// This holds the maximuim delay that will occur between attacks, if the ai is in the Attacking state long enough
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
 		float MinAttackDelay;// This holds the minimuim delay that will occur between attacks, if the ai is in the Attacking state long enough
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
 		float AggroTimeLimit;// This holds how long the ai will be aggroed to one target before trying to switch
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
 		float SearchRange;// This holds the range the ai can search in
@@ -219,25 +234,35 @@ public:
 		float AlertRange;// This holds the range in which the AI will notice a target, but not turn hostile. Instead it will start to move towards the target to get a better look
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
 		float AIAlertRange;// This holds the range another ai has to be into be alerted by this one
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
 		float AttackRange;// This holds the range thisai can attack from
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
+		float LongAttackRange;// This holds the range for a long range attack
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
+		float MidAttackRange;// This holds the range for a mid range attack
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
+		float ShortAttackRange;// This holds the range for a short range attack
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
 		float AttackPower;// This holds how strong this ai's attacks are
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Base Attributes")
 		float Health;// This holds the health of the ai
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Attacking Attributes")
 		bool AttackStarted;// This holds wether a attack has started or not
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Attacking Attributes")
 		bool AttackEnded;// This holds wether a attack has ended or not
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Attacking Attributes")
 		bool TargetHit;// This variables holds wether or not the ai's attack hit it's target
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Base Attributes")
 		AEnemyState EState;// This variables holds the current state the ai is in
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Base Attributes")
 		AEnemyConditionState ECState;// This variables holds the current condition state the ai is in
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Attack Attributes")
+		AEnemyAttackState EAState;// This should hold which attack range the ai will be using
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Attack Attributes")
+		AEnemyAttackState StartingEAState;// This should hold which attack range the ai will be using
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Attack Attributes")
 		TArray<FTInfo> Targets;// Holds each target that has been spotted
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Base Attributes")
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Attack Attributes")
 		FTInfo Target;// This holds the current target if there is one
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Behavior")
 		UBehaviorTree* BBTree;
