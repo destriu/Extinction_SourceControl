@@ -291,7 +291,7 @@ FHitResult AEnemyAIController::LineTraceToTarget(FVector targetLocation)
 	traceParams.bTraceComplex = true;
 	traceParams.bTraceAsyncScene = true;
 
-	bool bHit = World->LineTraceSingle(hit, EyeLocation, targetLocation, ECC_Visibility, traceParams);// Start a line trace towards the targets position
+	bool bHit = World->LineTraceSingleByChannel(hit, EyeLocation, targetLocation, ECC_Visibility, traceParams);// Start a line trace towards the targets position
 	if (Debug){ DrawLineToTarget(bHit, hit, targetLocation); }// Draws a line to the possible target
 
 	return hit;
@@ -315,7 +315,7 @@ void AEnemyAIController::DrawLineToTarget(bool bHit, FHitResult hit, FVector tar
 	else
 	{
 		// no hit means all red
-		DrawDebugLine(World, EyeLocation, targetLocation, FLinearColor::Red, bPersistent, lifeTime);
+		DrawDebugLine(World, EyeLocation, targetLocation, FColor::Red, bPersistent, lifeTime);
 	}
 }
 #pragma endregion

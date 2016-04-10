@@ -12,7 +12,7 @@
 *
 */
 #pragma region Enemy States
-UENUM(BlupreintType)
+UENUM(BlueprintType)
 enum class EnemyState : uint8
 {
 	ES_Idle				UMETA(DisplayName = "Idle"),
@@ -26,7 +26,7 @@ enum class EnemyState : uint8
 	ES_Charging         UMETA(DisplayName = "Charging")
 };
 
-UENUM(BlupreintType)
+UENUM(BlueprintType)
 enum class EnemyConditionState : uint8
 {
 	ECS_Normal			UMETA(DisplayName = "Normal"),

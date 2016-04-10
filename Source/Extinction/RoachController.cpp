@@ -92,7 +92,7 @@ void ARoachController::ChaseTimer(float deltaTime)
 	{
 		TimeElaspedSinceTargetWasLost += deltaTime;
 		LostTarget = (TimeElaspedSinceTargetWasLost >= Roach->TimeUnseenBeforeAttentionSpaneRelapse);
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(TimeElaspedSinceTargetWasLost));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(TimeElaspedSinceTargetWasLost));
 
 		if (LostTarget)
 		{
@@ -111,7 +111,6 @@ void ARoachController::MoveToLastKnownLocationTimer(float deltaTime)
 	if (StartSearchTimer && !ReachedTargetsLastKnownPosition)
 	{
 		TimeElaspedSinceMovingToTargetLastKnownPositionStarted += deltaTime;
-
 		if (TimeElaspedSinceMovingToTargetLastKnownPositionStarted >= Roach->MoveToTargetsLastKnownPositionTimeLimit)
 		{
 			ReachedTargetsLastKnownPosition = true;
@@ -138,12 +137,9 @@ void ARoachController::SearchTimer(float deltaTime)
 			StartSearchTimer = false;
 			LostTarget = false;
 
-			
 			this->GetPathFollowingComponent()->AbortMove(TEXT("Roach is roaring"));
-
 			SetState(Roach->UseableEStates[ROARING], "Roaring");
 			SetConditionState(Roach->UseableECStates[NORMAL], "Normal");
-
 			StateBeforeRoar = "Searching";
 		}
 	}
@@ -171,10 +167,8 @@ void ARoachController::ResetVariablesForStateChange(int state)
 	else if (state == CHASING)
 	{
 		StartIdleTimer = false;
-
 		LostTarget = false;
 		StartChaseTimer = false;
-
 		StartSearchTimer = false;
 	}
 }
@@ -201,7 +195,7 @@ void ARoachController::SearchForTarget()
 		if (possibleTarget != Cast<ACharacter>(Roach) && otherRoach == NULL && possibleTarget != NULL)
 		{
 			FVector possibleTargetLocation = possibleTarget->GetActorLocation();// Get location of the possible target
-			bool bHit = World->LineTraceSingle(hit, Roach->EyeLocation, possibleTargetLocation, ECC_Visibility, traceParams);// Start a line trace towards the targets position
+			bool bHit = World->LineTraceSingleByChannel(hit, Roach->EyeLocation, possibleTargetLocation, ECC_Visibility, traceParams);// Start a line trace towards the targets position
 
 			bool bPersistent = true;
 			float LifeTime = 5.f;
@@ -217,7 +211,7 @@ void ARoachController::SearchForTarget()
 			else
 			{
 				// no hit means all red
-				DrawDebugLine(World, Roach->EyeLocation, possibleTargetLocation, FLinearColor::Red, bPersistent, LifeTime);
+				DrawDebugLine(World, Roach->EyeLocation, possibleTargetLocation, FColor::Red, bPersistent, LifeTime);
 			}
 
 			// Check if the line trace hit a actor and if that actor is the target
@@ -421,7 +415,7 @@ FVector ARoachController::GetScatterLocation(FVector previousLocation)
 		}
 
 		times++;
-		NavSys->GetRandomPointInRadius(previousLocation, Roach->ScatterRange, Location);
+		NavSys->GetRandomPointInNavigableRadius(previousLocation, Roach->ScatterRange, Location);
 	} while (FVector::Dist(Location.Location, previousLocation) < scatterMinimuimDist);
 
 	return Location.Location;

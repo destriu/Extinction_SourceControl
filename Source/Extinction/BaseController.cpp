@@ -80,7 +80,6 @@ void ABaseController::SetState(EnemyState eState, FString sName)
 {
 	Self->EState = eState;
 	BBComp->SetValue<UBlackboardKeyType_String>(EStateID, sName);
-
 	if (eState == EnemyState::ES_Chasing)
 		Self->GetCharacterMovement()->MaxWalkSpeed = Self->ChasingMovementSpeed;
 	else if (eState == EnemyState::ES_Wandering)
@@ -172,10 +171,10 @@ FVector ABaseController::GetNewWanderPosition()
 		}
 
 		times++;
-		NavSys->GetRandomPointInRadius(Self->GetActorLocation(), Self->SightRange, Location);
+		NavSys->GetRandomPointInNavigableRadius(Self->GetActorLocation(), Self->SightRange, Location);
 	} while (FVector::Dist(Location.Location, Self->GetActorLocation()) < minimuimDist);
 
-	bool bHit = World->LineTraceSingle(hit, Self->EyeLocation, Location.Location, ECC_Visibility, traceParams);
+	bool bHit = World->LineTraceSingleByChannel(hit, Self->EyeLocation, Location.Location, ECC_Visibility, traceParams);
 
 	return Location.Location;
 }
@@ -194,7 +193,7 @@ void ABaseController::AlertEnemiesInRange(ACharacter* target)
 				&& Self->AlertRange >= distance)
 			{
 				FNavLocation location;
-				World->GetNavigationSystem()->GetRandomPointInRadius(Self->GetActorLocation(), 2000.f, location);
+				World->GetNavigationSystem()->GetRandomPointInNavigableRadius(Self->GetActorLocation(), 2000.f, location);
 
 				ABaseController* otherEnemyController = Cast<ABaseController>(otherEnemy->GetController());
 				otherEnemyController->SetState(EnemyState::ES_Alerted, "Alerted");
@@ -231,7 +230,7 @@ void ABaseController::SearchForTarget()
 		{
 
 			FVector possibleTargetLocation = poesibleTarget->GetActorLocation();
-			bool bHit = World->LineTraceSingle(hit, Self->EyeLocation, possibleTargetLocation, ECC_Visibility, traceParams);
+			bool bHit = World->LineTraceSingleByChannel(hit, Self->EyeLocation, possibleTargetLocation, ECC_Visibility, traceParams);
 
 			bool bPersistent = true;
 			float LifeTime = 5.f;
@@ -316,7 +315,7 @@ FVector ABaseController::GetNewSearchPosition()
 {
 	FNavLocation Location;
 	UNavigationSystem* NavSys = World->GetNavigationSystem();
-	NavSys->GetRandomPointInRadius(TargetsLastKnownPosition, Self->SearchRange, Location);
+	NavSys->GetRandomPointInNavigableRadius(TargetsLastKnownPosition, Self->SearchRange, Location);
 	return Location.Location;
 }
 
@@ -332,7 +331,7 @@ FVector ABaseController::GetHitPosition()
 {
 	FNavLocation location;
 	UNavigationSystem* navSys = UNavigationSystem::GetCurrent(World);
-	navSys->GetRandomPointInRadius(AttackLocation, 200.f, location);
+	navSys->GetRandomPointInNavigableRadius(AttackLocation, 200.f, location);
 	return location.Location;
 }
 
